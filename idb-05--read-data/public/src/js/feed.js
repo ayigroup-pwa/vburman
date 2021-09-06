@@ -117,3 +117,23 @@ if ('indexedDB' in window) {
       }
     });
 }
+
+// if ('caches' in window) {
+//   caches.match(url)
+//     .then(function(response) {
+//       if (response) {
+//         return response.json();
+//       }
+//     })
+//     .then(function(data) {
+//       console.log('From cache', data);
+//       if (!networkDataReceived) {
+//         var dataArray = [];
+//         for (var key in data) {
+//           console.log("saved key: " + key);
+//           dataArray.push(data[key]);
+//         }
+//         updateUI(dataArray)
+//       }
+//     });
+// }
