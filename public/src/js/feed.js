@@ -1,8 +1,10 @@
-var shareImageButton = document.querySelector('#share-image-button');
-var createPostArea = document.querySelector('#create-post');
-var closeCreatePostModalButton = document.querySelector('#close-create-post-modal-btn');
-var sharedMomentsArea = document.querySelector('#shared-moments');
+let shareImageButton = document.querySelector('#share-image-button');
+let createPostArea = document.querySelector('#create-post');
+let closeCreatePostModalButton = document.querySelector('#close-create-post-modal-btn');
+let sharedMomentsArea = document.querySelector('#shared-moments');
 
+
+//armar la funcionalidad de posteos
 function openCreatePostModal() {
   createPostArea.style.display = 'block';
   if (deferredPrompt) {
@@ -21,14 +23,6 @@ function openCreatePostModal() {
     deferredPrompt = null;
   }
 
-  // if ('serviceWorker' in navigator) {
-  //   navigator.serviceWorker.getRegistrations()
-  //     .then(function(registrations) {
-  //       for (var i = 0; i < registrations.length; i++) {
-  //         registrations[i].unregister();
-  //       }
-  //     })
-  // }
 }
 
 function closeCreatePostModal() {
@@ -39,17 +33,17 @@ shareImageButton.addEventListener('click', openCreatePostModal);
 
 closeCreatePostModalButton.addEventListener('click', closeCreatePostModal);
 
-// Currently not in use, allows to save assets in cache on demand otherwise
+// // Currently not in use, allows to save assets in cache on demand otherwise
 function onSaveButtonClicked(event) {
-  console.log('clicked');
-  if ('caches' in window) {
-    caches.open('user-requested')
-      .then(function(cache) {
+   console.log('clicked');
+   if ('caches' in window) {
+     caches.open('user-requested')
+       .then(cache=> {
         cache.add('https://httpbin.org/get');
-        cache.add('/src/images/sf-boat.jpg');
-      });
-  }
-}
+         cache.add('/src/images/sf-boat.jpg');
+       });
+   }
+ }
 
 function clearCards() {
   while(sharedMomentsArea.hasChildNodes()) {
@@ -58,32 +52,31 @@ function clearCards() {
 }
 
 function createCard(data) {
-  var cardWrapper = document.createElement('div');
+  let cardWrapper = document.createElement('div');
   cardWrapper.className = 'shared-moment-card mdl-card mdl-shadow--2dp';
-  var cardTitle = document.createElement('div');
+  let cardTitle = document.createElement('div');
   cardTitle.className = 'mdl-card__title';
   cardTitle.style.backgroundImage = 'url(' + data.image + ')';
   cardTitle.style.backgroundSize = 'cover';
   cardTitle.style.height = '180px';
   cardWrapper.appendChild(cardTitle);
-  var cardTitleTextElement = document.createElement('h2');
+  let cardTitleTextElement = document.createElement('h2');
   cardTitleTextElement.style.color = 'white';
   cardTitleTextElement.className = 'mdl-card__title-text';
   cardTitleTextElement.textContent = data.title;
   cardTitle.appendChild(cardTitleTextElement);
-  var cardSupportingText = document.createElement('div');
+  let cardSupportingText = document.createElement('div');
   cardSupportingText.className = 'mdl-card__supporting-text';
   cardSupportingText.textContent = data.location;
   cardSupportingText.style.textAlign = 'center';
-  // var cardSaveButton = document.createElement('button');
-  // cardSaveButton.textContent = 'Save';
-  // cardSaveButton.addEventListener('click', onSaveButtonClicked);
-  // cardSupportingText.appendChild(cardSaveButton);
+  
   cardWrapper.appendChild(cardSupportingText);
   componentHandler.upgradeElement(cardWrapper);
   sharedMomentsArea.appendChild(cardWrapper);
 }
 
+
+//itero en Data para crear todas las cards
 function updateUI(data) {
   clearCards();
   for (var i = 0; i < data.length; i++) {
@@ -91,16 +84,17 @@ function updateUI(data) {
   }
 }
 
-var url = 'https://test-65778-default-rtdb.firebaseio.com/posts.json';
-var networkDataReceived = false;
+let url = 'https://test-ayi-default-rtdb.firebaseio.com/posts.json';
+let networkDataReceived = false;
 
 fetch(url)
-  .then(function(res) {
+  .then(res => {
     return res.json();
   })
-  .then(function(data) {
+    .then(data => {
     networkDataReceived = true;
     console.log('From web', data);
+    //genero el array con los post que traigo de Firebase para iterar y generar las cards con el método createCard()
     var dataArray = [];
     for (var key in data) {
       dataArray.push(data[key]);
@@ -108,9 +102,10 @@ fetch(url)
     updateUI(dataArray);
   });
 
+//si indexedDB es soportado, puedo traer la data de idb y armar las cards con esos datos 
 if ('indexedDB' in window) {
   readAllData('posts')
-    .then(function(data) {
+    .then(data=> {
       if (!networkDataReceived) {
         console.log('From indexedDB', data);
         updateUI(data);
