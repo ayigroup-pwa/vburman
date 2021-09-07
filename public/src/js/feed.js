@@ -28,3 +28,44 @@ function closeCreatePostModal() {
 shareImageButton.addEventListener('click', openCreatePostModal);
 
 closeCreatePostModalButton.addEventListener('click', closeCreatePostModal);
+
+let networkDataProvide = false;
+let URL  = 'https://httpbin.org/get'
+
+
+//método para limpiar la tarjeta
+
+function clearCards(){
+  while(sharedMomentsArea.hasChildNodes()){
+    sharedMomentsArea.removeChild(sharedMomentsArea.lastChild)
+  }
+}
+fetch(URL)
+  .then(res=> {
+    return res.json()
+  })
+  .then(data=> {
+    networkDataProvide = true;
+    console.log('From Cloud :', data);
+    clearCards();
+    createCard();
+
+  })
+
+if('caches' in window){
+  caches.match(url)
+    .then(response => {
+      if(response){
+        return response.json();
+      }
+    })
+    .then(data=> {
+      console.log('From cache: ', data)
+
+      if(!networkDataProvide){
+        clearCards();
+        createCard();
+      }
+      
+    })
+}
