@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////
-// TASK 1 (respuestas adicionales debajo de la línea de código)
+// TASK 1 Ejercicio routing
 /* La estrategia utilizada en el [SW] es de Caché con Network Fallback; esta estrategia busca una respuesta cacheada primero (offline-first), si se encuentra un match, retorna esa respuesta. De lo contrario, se hace el fetch al Network, se retorna esa respuesta y al mismo tiempo se almacena un clon de la respuesta en la caché dinámica. Se puede comprobar en DevTools, evaluando en la pestaña Network, que en el primer reload de la página, el fetch de la ip proviene del cloud (va a buscarla a la red porque no la encuentra en Caché y tenemos conectividad), pero la segunda vez que refrescamos la web app, esa misma respuesta viene del sw y ya se encuentra en la caché dinámica.   */
 
 
@@ -141,7 +141,7 @@ self.addEventListener('fetch', function(event) {
 
    /*
     la App requiere dos peticiones, una a la caché y otra a Network, de esta forma utiliza la respuesta en caché primero y cuando llegue la respuesta de Network, actualizar la página y el caché con esta respuesta (resNet). 
-    Esta estrategia se podría utilizar cuando mi objetivo es actualizar el contenido de la app a lo más reciente cuando el estatus de conectividad pasa de offline a online. 
+    Esta estrategia se podría utilizar cuando mi objetivo es actualizar el contenido de la app a lo más reciente. 
    */
 
 
@@ -153,9 +153,9 @@ self.addEventListener('fetch', function(event) {
     box.style.height = (data.origin.substr(0, 2) * 5) + 'px';
   }
   let networkDataReceived = false; //indica si obtuvimos data de Network
-
-   //declaro una variable para obtener data desde Network
-  let networkUpdate = fetch('https://httpbin.org/ip')
+  let url = 'https://httpbin.org/ip'
+   //fetch a Network
+  fetch(url)
     .then(function (response) {
       return response.json();
     })
@@ -164,10 +164,14 @@ self.addEventListener('fetch', function(event) {
       updatePage(resNet);
     });
 
-  // obtengo la data desde Caché, de ser posible
-  caches.match('https://httpbin.org/ip')
+  // obtengo la data desde Caché, de ser posible (chequeo el soporte primero)
+  if('caches' in window)
+  caches.match(url)
     .then(function (response) {
-      return response.json();
+      if(response) {
+        return response.json();
+      }
+      
     })
     .then(function (resCache) {
       // si no existe data previa desde el Network, entonces actualizo la página con la respuesta obtenida de cache
@@ -175,14 +179,13 @@ self.addEventListener('fetch', function(event) {
         updatePage(resCache);
       }
     })
-    .catch(function () {
-      // Si no encuentra nada en caché, devuelve la respuesta traída de Network
-      return networkUpdate;
-    })
+    
 ------------------------------------------ fin de script que va en main.js -------------------------*/
-    //código que SI va en el [SW]. Este fragmento de código me indica que siempre debe peticionar a Network y actualizar la caché. 
+    //código que SI va en el [SW]. Este fragmento de código me indica que siempre debe peticionar a Network y actualizar la caché.  Primero chequeo que la URL de mi interés esté dentro del request del evento fetch; si lo está(si tiene un index mayor a -1), entonces hace update de la url que tiene en el caché y al mismo tiempo retorna la respuesta actualizada.
     /*
     self.addEventListener('fetch', function(event) {
+      let url = 'https://httpbin.org/ip';
+      if (event.request.url.indexOf(url) > -1) {
       event.respondWith(
         caches.open(CACHE_DYNAMIC_NAME)
           .then(function(cache) {
@@ -193,5 +196,6 @@ self.addEventListener('fetch', function(event) {
             });
           })
       );
+      };
     });
   */

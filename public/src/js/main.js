@@ -36,9 +36,10 @@ fetch('https://httpbin.org/ip')
     box.style.height = (data.origin.substr(0, 2) * 5) + 'px';
   }
   let networkDataReceived = false; //indica si obtuvimos data de Network
-
-   //declaro una variable para obtener data desde Network
-  let networkUpdate = fetch('https://httpbin.org/ip')
+  let url = 'https://httpbin.org/ip'
+  
+   //fetch a Network
+  fetch(url)
     .then(function (response) {
       return response.json();
     })
@@ -47,19 +48,19 @@ fetch('https://httpbin.org/ip')
       updatePage(resNet);
     });
 
-  // obtengo la data desde Caché, de ser posible
-  caches.match('https://httpbin.org/ip')
+  // obtengo la data desde Caché, de ser posible (chequeo el soporte primero)
+  if('caches' in window)
+  caches.match(url)
     .then(function (response) {
-      return response.json();
+      if(response) {
+        return response.json();
+      }
+      
     })
     .then(function (resCache) {
       // si no existe data previa desde el Network, entonces actualizo la página con la respuesta obtenida de cache
       if (!networkDataReceived) {
         updatePage(resCache);
       }
-    })
-    .catch(function () {
-      // Si no encuentra nada en caché, devuelve la respuesta traída de Network
-      return networkUpdate;
     })
     */
