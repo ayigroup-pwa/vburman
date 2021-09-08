@@ -18,20 +18,19 @@ button.addEventListener('click', function(event) {
   }
 });
 
-
+/*
 fetch('https://httpbin.org/ip')
   .then(function(res) {
-    console.log('main')
     return res.json();
   })
   .then(function(data) {
     console.log(data.origin);
     box.style.height = (data.origin.substr(0, 2) * 5) + 'px';
   });
-
-  //FRAGMENTO DE CÓDIGO PARA LA TASK PARTE 2: estrategia 'CACHE, THEN NETWORK'. 
+*/
+  //FRAGMENTO DE CÓDIGO PARA LA TASK ESTRATEGIA MIXTA. 
   
- /*
+ 
   let networkDataReceived = false; //indica si obtuvimos data de Network
   let url = 'https://httpbin.org/ip'
   
@@ -40,10 +39,10 @@ fetch('https://httpbin.org/ip')
     .then(function (response) {
       return response.json();
     })
-    .then(function (resNet) {
+    .then(function (data) {
       networkDataReceived = true;
-      console.log(resCache.origin);
-      box.style.height = (resCache.substr(0, 2) * 5) + 'px';
+      console.log(data.origin);
+      box.style.height = (data.origin.substr(0, 2) * 5) + 'px';
     });
 
   // obtengo la data desde Caché, de ser posible (chequeo el soporte primero)
@@ -55,11 +54,11 @@ fetch('https://httpbin.org/ip')
       }
       
     })
-    .then(function (resCache) {
+    .then(function (data) {
       // si no existe data previa desde el Network, entonces actualizo la página con la respuesta obtenida de cache
       if (!networkDataReceived) {
-        console.log(resCache.origin);
-        box.style.height = (resCache.substr(0, 2) * 5) + 'px';
+        console.log(data.origin);
+        box.style.height = (data.origin.substr(0, 2) * 10) + 'px';
       }
     })
-  */
+  

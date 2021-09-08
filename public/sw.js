@@ -2,9 +2,8 @@
 // TASK 1 Ejercicio routing
 /* La estrategia utilizada en el [SW] es de Caché con Network Fallback; esta estrategia busca una respuesta cacheada primero (offline-first), si se encuentra un match, retorna esa respuesta. De lo contrario, se hace el fetch al Network, se retorna esa respuesta y al mismo tiempo se almacena un clon de la respuesta en la caché dinámica. Se puede comprobar en DevTools, evaluando en la pestaña Network, que en el primer reload de la página, el fetch de la ip proviene del cloud (va a buscarla a la red porque no la encuentra en Caché y tenemos conectividad), pero la segunda vez que refrescamos la web app, esa misma respuesta viene del sw y ya se encuentra en la caché dinámica.   */
 
-
-let CACHE_STATIC_NAME = 'static-v14';
-let CACHE_DYNAMIC_NAME = 'dynamic-v12';
+let CACHE_STATIC_NAME = 'static-v16';
+let CACHE_DYNAMIC_NAME = 'dynamic-v14';
 let PRECACHING = [
   '/',
   '/index.html',
@@ -47,7 +46,7 @@ self.addEventListener('activate', function(event) {
 
 /* El fetch es evaluado por el [SW], la respuesta será la response que venga del caché, si encuentra un match con el request que estamos peticionando, o será una respuesta del Network, en caso de que no lo encuentre, que será almacenada (un clon de la respuesta, porque solo puede ser utilizada una vez) en Caché dinámica para futuras request. */
 
-
+/*
 self.addEventListener('fetch', function(event) {
   event.respondWith(
     caches.match(event.request)
@@ -70,7 +69,7 @@ self.addEventListener('fetch', function(event) {
       })
   );
 });
-
+*/
 
 
 ////////////////////////////////////////////////////////////////////////////
@@ -183,7 +182,7 @@ self.addEventListener('fetch', function(event) {
     })
     
 ------------------------------------------ fin de script que va en main.js -------------------------*/
-    //código que SI va en el [SW]. Este fragmento de código me indica que siempre debe peticionar a Network y actualizar la caché.  Hago update de la url que tiene en el caché y al mismo tiempo retorna la respuesta actualizada.
+    //código que SI va en el [SW]. Este fragmento de código me indica que siempre debe peticionar a Network y actualizar la caché para tener la última versión posible. 
   /*
     self.addEventListener('fetch', function(event) {
       event.respondWith(
@@ -191,30 +190,34 @@ self.addEventListener('fetch', function(event) {
           .then(function(cache) {
             return fetch(event.request)
               .then(function(res){
-                cache.put(event.request, res.clone());
+                cache.put(event.request.url, res.clone());
                 return res;
             });
           })
       );
-      };
-    });
+      })
+  
   */
-
-
-
     /////////////////////////////////////////////////////////////////////
     //TASK-1 parte 3: routing
     /* NOTAS: Agregué una página de Fallback ('/offline.html') con una estructura básica, a fines demostrativos.
     
     */
-
+   //función para validar si la URL del fetch se encuentra en el array de precaching.
+    function isInArray(string, array) {
+      for (let i = 0; i < array.length; i++) {
+        if (string === array[i]) return true;
+      }
+      return false;
+    }
+    
     //ESTRATEGIA 1: CACHE THEN NETWORK. 
     /* Primero el [SW] intercepta el fetch y evalúa si alguna de las URL del request (o la URL si es una sola) coincide
     con la URL que declaramos; si coincide, implementa una estrategia de cache then network, actualizando la página y la caché dinámica con un clon de la respuesta a Network como en el item anterior (ver Main.js también); esto es adecuado para assets de la App que requieran estar actualizados*/
     
     self.addEventListener('fetch', function(event) {
-      let url = 'https://httpbin.org/headers'; //agrego otra URL distinta a 'https://httpbin.org/ip' a modo de prueba
-    
+      let url = 'https://httpbin.org/ip'; 
+
       if(event.request.url.indexOf(url) > -1) { 
         event.respondWith(
           caches.open(CACHE_DYNAMIC_NAME)
@@ -229,20 +232,18 @@ self.addEventListener('fetch', function(event) {
     /* ESTRATEGIA 2: CACHE ONLY. Si el request del fetch no contiene la URL declarada, buscamos si esa url del request se encuentra en Precaching (en la caché estática según el código). Si está, trae la respuesta directamente del Caché.
     */
    
-      } else if (PRECACHING.includes(event.request.url)) {
+      } else if (isInArray(event.request.url, PRECACHING)) {
           event.respondWith( 
-            caches.match(event.request)
-              .then(function(resPreCache){
-                  return resPreCache;
-        })
-          );
+            caches.match(event.request.url)
+        )
+      
     /* ESTRATEGIA 3: Cache with network fallback
     Si la URL del fetch no coincide con los dos criterios anteriores, entonces implementamos caché with network fallback. En este caso, el [sw] busca en todas las caches disponibles un match con la URL del fetch. Si hay respuesta, la retorna; si no hay respuesta, continúa el fetch a Network, trae esa respuesta, la retorna, y guarda en la caché dinámica un clon de esa respuesta. Si la app se encuentra offline, agregué un manejo de catch con una página fallback precacheada para que el usuario pueda volver al home.
     */
    
       } else {
         event.respondWith(
-          caches.match(event.request)
+          caches.match(event.request.url)
             .then(function(response) {
               if (response) {
                 return response;
@@ -269,3 +270,5 @@ self.addEventListener('fetch', function(event) {
 )
       }
     })
+
+

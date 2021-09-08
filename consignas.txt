@@ -10,3 +10,6 @@ Add "Routing"/ URL Parsing to pick the right strategies: Try to implement "Cache
 Important: Clear your Application Storage first to get rid of the old SW & Cache from the Main Project!
 
 
+
+
+
