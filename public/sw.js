@@ -3,8 +3,21 @@
 /* La estrategia utilizada en el [SW] es de Caché con Network Fallback; esta estrategia busca una respuesta cacheada primero (offline-first), si se encuentra un match, retorna esa respuesta. De lo contrario, se hace el fetch al Network, se retorna esa respuesta y al mismo tiempo se almacena un clon de la respuesta en la caché dinámica. Se puede comprobar en DevTools, evaluando en la pestaña Network, que en el primer reload de la página, el fetch de la ip proviene del cloud (va a buscarla a la red porque no la encuentra en Caché y tenemos conectividad), pero la segunda vez que refrescamos la web app, esa misma respuesta viene del sw y ya se encuentra en la caché dinámica.   */
 
 
-var CACHE_STATIC_NAME = 'static-v8';
-var CACHE_DYNAMIC_NAME = 'dynamic-v5';
+let CACHE_STATIC_NAME = 'static-v14';
+let CACHE_DYNAMIC_NAME = 'dynamic-v12';
+let PRECACHING = [
+  '/',
+  '/index.html',
+  '/src/css/app.css',
+  '/src/css/main.css',
+  '/src/js/main.js',
+  '/src/js/material.min.js',
+  'https://fonts.googleapis.com/css?family=Roboto:400,700',
+  'https://fonts.googleapis.com/icon?family=Material+Icons',
+  'https://cdnjs.cloudflare.com/ajax/libs/material-design-lite/1.3.0/material.indigo-pink.min.css',
+  '/offline.html' //en Precache para el ejercicio de routing
+  //'https://httpbin.org/ip' (agregado sólo para evaluar la estrategia caché only)
+]
 
 //Ciclo de vida del [sw] : instalación. Abre/genera la caché estática y realiza el precaché de la App Shell
 
@@ -12,18 +25,7 @@ self.addEventListener('install', function(event) {
   event.waitUntil(
     caches.open(CACHE_STATIC_NAME)
       .then(function(cache) {
-        cache.addAll([
-          '/',
-          '/index.html',
-          '/src/css/app.css',
-          '/src/css/main.css',
-          '/src/js/main.js',
-          '/src/js/material.min.js',
-          'https://fonts.googleapis.com/css?family=Roboto:400,700',
-          'https://fonts.googleapis.com/icon?family=Material+Icons',
-          'https://cdnjs.cloudflare.com/ajax/libs/material-design-lite/1.3.0/material.indigo-pink.min.css',
-          //'https://httpbin.org/ip' (agregado sólo para evaluar la estrategia caché only)
-        ]);
+        cache.addAll(PRECACHING);
       })
   )
 });
@@ -35,7 +37,7 @@ self.addEventListener('activate', function(event) {
     caches.keys()
       .then(function(keyList) {
         return Promise.all(keyList.map(function(key) {
-          if (key !== CACHE_STATIC_NAME) {
+          if (key !== CACHE_STATIC_NAME && key !== CACHE_DYNAMIC_NAME) {
             return caches.delete(key);
           }
         }));
@@ -44,7 +46,7 @@ self.addEventListener('activate', function(event) {
 });
 
 /* El fetch es evaluado por el [SW], la respuesta será la response que venga del caché, si encuentra un match con el request que estamos peticionando, o será una respuesta del Network, en caso de que no lo encuentre, que será almacenada (un clon de la respuesta, porque solo puede ser utilizada una vez) en Caché dinámica para futuras request. */
-/* 
+
 
 self.addEventListener('fetch', function(event) {
   event.respondWith(
@@ -69,7 +71,7 @@ self.addEventListener('fetch', function(event) {
   );
 });
 
-*/
+
 
 ////////////////////////////////////////////////////////////////////////////
 // TASK parte 2:
@@ -97,7 +99,7 @@ self.addEventListener('fetch', function(event) {
 //CACHÉ ONLY
 
 /* Esta estrategia, busca solamente en Caché; si no lo encuentra no lo carga. Esto se utiliza para assets que no cambian nunca, o que no tenemos planificado cambiar con frecuencia, por ejemplo un logo. Se podría indicar incluso que cargue de una única caché, haciendo caches.open(nombreCache) y resolver esa promesa con cache.match(event.request). En este ejemplo, se utiliza caches.match() para buscar el request en todas las caches disponibles.
-Para evaluar esta estrategia, en modo online si 'https://httpbin.org/ip' no estaba en la caché estática el fetch del Main.js, quedaba trunco. Agregué la URL a la caché estática como un precache para evaluar que efectivamente la promesa se resolvía matcheando en la caché; cuando utilicé la app en forma offline, el fetch seguía respondiendo desde la caché.
+IMPORTANTE: Para evaluar esta estrategia, en modo online si 'https://httpbin.org/ip' no estaba en la caché estática el fetch del Main.js, quedaba trunco. Agregué provisoriamente la URL a la caché estática como un precache para evaluar que efectivamente la promesa se resolvía matcheando en la caché; cuando utilicé la app en forma offline, el fetch seguía respondiendo desde la caché. Para el resto de los ejercicios esta URL se encuentra comentada en el precache.
 */
 
 /*
@@ -181,11 +183,9 @@ self.addEventListener('fetch', function(event) {
     })
     
 ------------------------------------------ fin de script que va en main.js -------------------------*/
-    //código que SI va en el [SW]. Este fragmento de código me indica que siempre debe peticionar a Network y actualizar la caché.  Primero chequeo que la URL de mi interés esté dentro del request del evento fetch; si lo está(si tiene un index mayor a -1), entonces hace update de la url que tiene en el caché y al mismo tiempo retorna la respuesta actualizada.
-    /*
+    //código que SI va en el [SW]. Este fragmento de código me indica que siempre debe peticionar a Network y actualizar la caché.  Hago update de la url que tiene en el caché y al mismo tiempo retorna la respuesta actualizada.
+  /*
     self.addEventListener('fetch', function(event) {
-      let url = 'https://httpbin.org/ip';
-      if (event.request.url.indexOf(url) > -1) {
       event.respondWith(
         caches.open(CACHE_DYNAMIC_NAME)
           .then(function(cache) {
@@ -199,3 +199,73 @@ self.addEventListener('fetch', function(event) {
       };
     });
   */
+
+
+
+    /////////////////////////////////////////////////////////////////////
+    //TASK-1 parte 3: routing
+    /* NOTAS: Agregué una página de Fallback ('/offline.html') con una estructura básica, a fines demostrativos.
+    
+    */
+
+    //ESTRATEGIA 1: CACHE THEN NETWORK. 
+    /* Primero el [SW] intercepta el fetch y evalúa si alguna de las URL del request (o la URL si es una sola) coincide
+    con la URL que declaramos; si coincide, implementa una estrategia de cache then network, actualizando la página y la caché dinámica con un clon de la respuesta a Network como en el item anterior (ver Main.js también); esto es adecuado para assets de la App que requieran estar actualizados*/
+    
+    self.addEventListener('fetch', function(event) {
+      let url = 'https://httpbin.org/headers'; //agrego otra URL distinta a 'https://httpbin.org/ip' a modo de prueba
+    
+      if(event.request.url.indexOf(url) > -1) { 
+        event.respondWith(
+          caches.open(CACHE_DYNAMIC_NAME)
+            .then(function(cache) {
+              return fetch(event.request)
+                .then(function(res){
+                  cache.put(event.request.url, res.clone());
+                  return res;
+                })
+            })
+        );
+    /* ESTRATEGIA 2: CACHE ONLY. Si el request del fetch no contiene la URL declarada, buscamos si esa url del request se encuentra en Precaching (en la caché estática según el código). Si está, trae la respuesta directamente del Caché.
+    */
+   
+      } else if (PRECACHING.includes(event.request.url)) {
+          event.respondWith( 
+            caches.match(event.request)
+              .then(function(resPreCache){
+                  return resPreCache;
+        })
+          );
+    /* ESTRATEGIA 3: Cache with network fallback
+    Si la URL del fetch no coincide con los dos criterios anteriores, entonces implementamos caché with network fallback. En este caso, el [sw] busca en todas las caches disponibles un match con la URL del fetch. Si hay respuesta, la retorna; si no hay respuesta, continúa el fetch a Network, trae esa respuesta, la retorna, y guarda en la caché dinámica un clon de esa respuesta. Si la app se encuentra offline, agregué un manejo de catch con una página fallback precacheada para que el usuario pueda volver al home.
+    */
+   
+      } else {
+        event.respondWith(
+          caches.match(event.request)
+            .then(function(response) {
+              if (response) {
+                return response;
+              } else {
+                return fetch(event.request)
+                  .then(function(res) {
+                    return caches.open(CACHE_DYNAMIC_NAME)
+                      .then(function(cache) {
+                          cache.put(event.request.url, res.clone());
+                          return res;
+                      });
+                    })
+            .catch(function(err) {
+              caches.open(CACHE_STATIC_NAME)
+                .then(function(cache) {
+                    return cache.match('/offline.html')
+                      }); //offline fallback
+                })
+            };
+        }
+     
+  )
+  
+)
+      }
+    })
